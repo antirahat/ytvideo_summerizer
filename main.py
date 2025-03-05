@@ -1,10 +1,13 @@
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api.formatters import TextFormatter
 from urllib.parse import urlparse, parse_qs
+from openai import OpenAI
+
+# Initialize OpenAI client
+OPENAI_API_KEY = "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"
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 def get_video_id(url):
-    """Extract video ID from YouTube URL"""
-    # Handle different URL formats (full URL, short URL, or direct video ID)
     if len(url.strip()) == 11:
         return url.strip()
     
@@ -30,14 +33,43 @@ def get_transcript(url):
     except Exception as e:
         return f"Error: {str(e)}"
 
+def generate_summary(transcript):
+    """Generate bullet-point summary using OpenAI API"""
+    try:
+        # Create a prompt for the AI
+        prompt = f"Please summarize the following transcript into key bullet points that capture the main topics and ideas discussed:\n\n{transcript}"
+        
+        # Call OpenAI API
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that creates concise bullet-point summaries of video transcripts."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        # Extract and return the summary
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error generating summary: {str(e)}"
+
 def main():
     # Get YouTube URL from user
     url = input("Enter YouTube video URL or video ID: ")
     
-    # Get and print transcript
+    # Get transcript
+    print("\nFetching transcript...")
     transcript = get_transcript(url)
-    print("\nTranscript:")
-    print(transcript)
+    
+    if transcript.startswith("Error"):
+        print(transcript)
+        return
+    
+    # Generate and print summary
+    print("\nGenerating summary...")
+    summary = generate_summary(transcript)
+    print("\nVideo Summary:")
+    print(summary)
 
 if __name__ == "__main__":
     main()
